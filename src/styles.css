@@ -194,14 +194,34 @@ h1 {
 }
 
 .toolbar {
-  display: flex;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
   padding: 0 12px 8px;
 }
 
 .toolbar-button {
   height: 30px;
   padding: 0 10px;
+}
+
+.project-filter {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.project-filter select {
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
 }
 
 .status {
@@ -257,7 +277,7 @@ h1 {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 0;
   color: inherit;
   text-decoration: none;
@@ -312,10 +332,39 @@ h1 {
   color: var(--warning);
 }
 
-.mr-close-button {
-  min-width: 52px;
-  height: 30px;
+.badge.activity-new {
+  background: #e6f4ea;
+  color: var(--success);
+}
+
+.badge.activity-updated {
+  background: #e8f0fe;
+  color: var(--accent);
+}
+
+.mr-actions {
+  display: grid;
+  gap: 6px;
   margin-right: 10px;
+}
+
+.mr-actions button {
+  min-width: 56px;
+  height: 28px;
+  padding: 0 8px;
+}
+
+.mr-ignore-button {
+  color: #3f4651;
+  background: #fff;
+}
+
+.mr-ignore-button:hover {
+  border-color: #aeb5bf;
+  background: #f3f4f6;
+}
+
+.mr-close-button {
   color: var(--danger);
   border-color: #f2b8b5;
   background: #fff;

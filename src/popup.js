@@ -9,6 +9,7 @@ const DEFAULTS = {
 
 const state = {
   activeTab: "created",
+  projectFilter: "",
   settings: null,
   user: null,
   created: [],
@@ -20,6 +21,7 @@ const accountLabel = document.querySelector("#accountLabel");
 const closeButton = document.querySelector("#closeButton");
 const copyButton = document.querySelector("#copyButton");
 const onboardingPanel = document.querySelector("#onboardingPanel");
+const projectFilter = document.querySelector("#projectFilter");
 const refreshButton = document.querySelector("#refreshButton");
 const settingsButton = document.querySelector("#settingsButton");
 const skipOnboardingButton = document.querySelector("#skipOnboardingButton");
@@ -41,6 +43,10 @@ document.querySelectorAll(".tab").forEach((button) => {
 
 closeButton.addEventListener("click", () => window.close());
 copyButton.addEventListener("click", copyCurrentList);
+projectFilter.addEventListener("change", () => {
+  state.projectFilter = projectFilter.value;
+  render();
+});
 refreshButton.addEventListener("click", () => loadData());
 settingsButton.addEventListener("click", openOptions);
 skipOnboardingButton.addEventListener("click", dismissOnboarding);
@@ -92,11 +98,14 @@ async function loadData() {
 }
 
 function render() {
-  const list = state[state.activeTab];
+  updateProjectFilter();
+  const list = currentList();
+  const tabList = state[state.activeTab];
   copyButton.disabled = !list.length;
+  projectFilter.disabled = !tabList.length;
 
   if (!list.length) {
-    contentEl.innerHTML = `<div class="empty">${state.activeTab === "created" ? "No open MRs created by you" : "No MRs waiting for your review"}</div>`;
+    contentEl.innerHTML = `<div class="empty">${emptyMessage()}</div>`;
     return;
   }
 
@@ -115,7 +124,7 @@ function render() {
 }
 
 async function copyCurrentList() {
-  const list = state[state.activeTab];
+  const list = currentList();
   if (!list.length) {
     setStatus("The current list is empty. Nothing to copy.");
     return;
@@ -152,6 +161,7 @@ function renderMergeRequest(mr) {
   const updated = mr.updated_at ? timeAgo(new Date(mr.updated_at)) : "";
   const source = `${mr.source_branch || ""} → ${mr.target_branch || ""}`;
   const draft = mr.draft || mr.work_in_progress;
+  const activity = renderActivityBadge(mr.watcher_activity);
 
   return `
     <article class="mr-item" data-url="${escapeHtml(mr.web_url)}" data-project-id="${escapeHtml(mr.project_id)}" data-iid="${escapeHtml(mr.iid)}">
@@ -159,12 +169,16 @@ function renderMergeRequest(mr) {
         <div class="mr-title">${escapeHtml(mr.title)}</div>
         <div class="mr-meta">
           <span class="badge">!${mr.iid}</span>
+          ${activity}
           ${draft ? `<span class="badge draft">Draft</span>` : ""}
           <span>${escapeHtml(source)}</span>
           <span>${escapeHtml(updated)}</span>
         </div>
       </div>
-      <button class="mr-close-button" type="button" title="Close this MR" aria-label="Close this MR">Close</button>
+      <div class="mr-actions">
+        <button class="mr-ignore-button" type="button" title="Hide this MR locally" aria-label="Hide this MR locally">Ignore</button>
+        <button class="mr-close-button" type="button" title="Close this MR" aria-label="Close this MR">Close</button>
+      </div>
     </article>
   `;
 }
@@ -192,6 +206,12 @@ function handleContentClick(event) {
   const closeButton = event.target.closest(".mr-close-button");
   if (closeButton) {
     closeMergeRequest(closeButton.closest(".mr-item"), closeButton);
+    return;
+  }
+
+  const ignoreButton = event.target.closest(".mr-ignore-button");
+  if (ignoreButton) {
+    ignoreMergeRequest(ignoreButton.closest(".mr-item"), ignoreButton);
     return;
   }
 
@@ -242,6 +262,36 @@ async function closeMergeRequest(item, button) {
   }
 }
 
+async function ignoreMergeRequest(item, button) {
+  if (!item) return;
+  const mr = findMergeRequest(Number(item.dataset.projectId), Number(item.dataset.iid));
+  if (!mr) return;
+
+  button.disabled = true;
+  setStatus(`Ignoring !${mr.iid}...`);
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: "ignoreMergeRequest",
+      mergeRequest: {
+        project_id: mr.project_id,
+        iid: mr.iid
+      }
+    });
+
+    if (!response?.ok) {
+      throw new Error(response?.error || "Ignore failed");
+    }
+
+    applyCache(response.cache);
+    render();
+    setStatus(`Ignored !${mr.iid}`);
+  } catch (error) {
+    button.disabled = false;
+    setStatus(error.message, "error");
+  }
+}
+
 function findMergeRequest(projectId, iid) {
   return [...state.created, ...state.review].find((mr) =>
     mr.project_id === projectId && mr.iid === iid
@@ -274,6 +324,54 @@ function groupByProject(mergeRequests) {
   return [...groups.values()].sort((a, b) =>
     a.project.name_with_namespace.localeCompare(b.project.name_with_namespace)
   );
+}
+
+function currentList() {
+  const list = state[state.activeTab];
+  if (!state.projectFilter) {
+    return list;
+  }
+
+  return list.filter((mr) => String(mr.project_id) === state.projectFilter);
+}
+
+function emptyMessage() {
+  if (state.projectFilter) {
+    return "No MRs in this project for the current view";
+  }
+
+  return state.activeTab === "created"
+    ? "No open MRs created by you"
+    : "No MRs waiting for your review";
+}
+
+function updateProjectFilter() {
+  const projects = groupByProject(state[state.activeTab]).map(({ project }) => project);
+  const currentValue = state.projectFilter;
+
+  if (currentValue && !projects.some((project) => String(project.id) === currentValue)) {
+    state.projectFilter = "";
+  }
+
+  projectFilter.innerHTML = [
+    `<option value="">All projects</option>`,
+    ...projects.map((project) =>
+      `<option value="${escapeHtml(project.id)}">${escapeHtml(project.name_with_namespace)}</option>`
+    )
+  ].join("");
+  projectFilter.value = state.projectFilter;
+}
+
+function renderActivityBadge(activity) {
+  if (activity === "new") {
+    return `<span class="badge activity-new">New</span>`;
+  }
+
+  if (activity === "updated") {
+    return `<span class="badge activity-updated">Updated</span>`;
+  }
+
+  return "";
 }
 
 function updateTabs() {

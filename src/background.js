@@ -6,6 +6,8 @@ const DEFAULTS = {
 };
 
 const CACHE_KEY = "mrCache";
+const IGNORED_KEY = "ignoredMergeRequests";
+const SEEN_KEY = "mrSeenState";
 const ALARM_NAME = "refreshGitlabMergeRequests";
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -44,6 +46,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === "ignoreMergeRequest") {
+    ignoreMergeRequest(message.mergeRequest)
+      .then((cache) => sendResponse({ ok: true, cache }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
   return false;
 });
 
@@ -74,11 +83,15 @@ async function refreshMergeRequests() {
     fetchMergeRequests(settings, "created_by_me"),
     fetchMergeRequests(settings, "reviews_for_me")
   ]);
-  const projects = await fetchProjects(settings, [...created, ...review]);
+  const enriched = await markMergeRequestActivity([...created, ...review]);
+  const enrichedByKey = new Map(enriched.map((mr) => [mergeRequestKey(mr), mr]));
+  const visibleCreated = created.map((mr) => enrichedByKey.get(mergeRequestKey(mr)) || mr);
+  const visibleReview = review.map((mr) => enrichedByKey.get(mergeRequestKey(mr)) || mr);
+  const projects = await fetchProjects(settings, [...visibleCreated, ...visibleReview]);
   const cache = {
     user,
-    created,
-    review,
+    created: visibleCreated,
+    review: visibleReview,
     projects,
     fetchedAt: new Date().toISOString()
   };
@@ -130,6 +143,76 @@ async function closeMergeRequest(mergeRequest) {
   });
 
   return nextCache;
+}
+
+async function ignoreMergeRequest(mergeRequest) {
+  if (!mergeRequest?.project_id || !mergeRequest?.iid) {
+    throw new Error("Missing MR project ID or IID, so it cannot be ignored.");
+  }
+
+  const key = mergeRequestKey(mergeRequest);
+  const current = await chrome.storage.local.get({
+    [CACHE_KEY]: null,
+    [IGNORED_KEY]: []
+  });
+  const ignored = new Set(current[IGNORED_KEY] || []);
+  ignored.add(key);
+
+  const cache = current[CACHE_KEY] || {
+    user: null,
+    created: [],
+    review: [],
+    projects: [],
+    fetchedAt: new Date().toISOString()
+  };
+  const nextCache = removeMergeRequestFromCache(cache, mergeRequest);
+
+  await chrome.storage.local.set({
+    [CACHE_KEY]: nextCache,
+    [IGNORED_KEY]: [...ignored]
+  });
+  await chrome.action.setBadgeText({
+    text: nextCache.review.length ? String(nextCache.review.length) : ""
+  });
+
+  return nextCache;
+}
+
+async function markMergeRequestActivity(mergeRequests) {
+  const current = await chrome.storage.local.get({
+    [SEEN_KEY]: {},
+    [IGNORED_KEY]: []
+  });
+  const ignored = new Set(current[IGNORED_KEY] || []);
+  const previous = current[SEEN_KEY] || {};
+  const next = {};
+
+  const visible = mergeRequests
+    .filter((mr) => !ignored.has(mergeRequestKey(mr)))
+    .map((mr) => {
+      const key = mergeRequestKey(mr);
+      const previousEntry = previous[key];
+      const activity = !previousEntry
+        ? "new"
+        : previousEntry.updated_at !== mr.updated_at
+          ? "updated"
+          : "";
+
+      next[key] = {
+        project_id: mr.project_id,
+        iid: mr.iid,
+        updated_at: mr.updated_at,
+        seen_at: previousEntry?.seen_at || new Date().toISOString()
+      };
+
+      return {
+        ...mr,
+        watcher_activity: activity
+      };
+    });
+
+  await chrome.storage.local.set({ [SEEN_KEY]: next });
+  return visible;
 }
 
 async function fetchMergeRequests(settings, scope) {
@@ -197,4 +280,20 @@ async function gitlabFetch(settings, path, options = {}) {
 
 function isConfigured(settings) {
   return Boolean(settings.gitlabBaseUrl && settings.accessToken);
+}
+
+function removeMergeRequestFromCache(cache, mergeRequest) {
+  const matches = (item) =>
+    item.project_id === mergeRequest.project_id && item.iid === mergeRequest.iid;
+
+  return {
+    ...cache,
+    created: (cache.created || []).filter((item) => !matches(item)),
+    review: (cache.review || []).filter((item) => !matches(item)),
+    fetchedAt: new Date().toISOString()
+  };
+}
+
+function mergeRequestKey(mergeRequest) {
+  return `${mergeRequest.project_id}:${mergeRequest.iid}`;
 }
