@@ -57,6 +57,6 @@ The extension only requests the GitLab URL you configure:
 - `GET /api/v4/projects/:id`
 - `PUT /api/v4/projects/:id/merge_requests/:merge_request_iid?state_event=close`
 
-This extension is local-first. The access token and MR cache are stored only in local browser extension storage, requests go only to the GitLab URL you configure, and nothing is sent to any third-party service.
+This extension is local-first. The access token and MR cache are stored only in local browser extension storage, requests go only to the GitLab URL you configure, and nothing is sent to any third-party service. The Firefox package declares `data_collection_permissions.required: ["none"]`.
 
 Auto refresh uses `chrome.alarms`. While the browser is running, the extension refreshes on the configured interval and shows the number of MRs waiting for your review in the extension badge.

@@ -76,7 +76,7 @@ jobs:
           body: |
             Automated extension package from `${{ github.sha }}`.
 
-            Use version tags like `v0.5.0` for stable releases.
+            Use version tags like `v0.5.1` for stable releases.
           files: |
             dist/gitlab-mr-watcher-chrome.zip
             dist/gitlab-mr-watcher-firefox.zip
