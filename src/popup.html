@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GitLab Me MR</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <h1>GitLab MR</h1>
+          <p id="accountLabel" class="muted">Not configured</p>
+        </div>
+        <div class="actions">
+          <button id="refreshButton" class="icon-button" type="button" title="Refresh" aria-label="Refresh">
+            <span aria-hidden="true">↻</span>
+          </button>
+          <button id="settingsButton" class="icon-button" type="button" title="Settings" aria-label="Settings">
+            <span aria-hidden="true">⚙</span>
+          </button>
+          <button id="closeButton" class="icon-button" type="button" title="Close" aria-label="Close">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+      </header>
+
+      <section id="onboardingPanel" class="onboarding" hidden>
+        <h2>Track your GitLab merge requests</h2>
+        <p>GitLab Me MR shows open merge requests created by you and merge requests waiting for your review, grouped by project.</p>
+        <ol>
+          <li>Open settings.</li>
+          <li>Enter your GitLab URL.</li>
+          <li>Create a GitLab access token and select all scopes for the simplest setup.</li>
+          <li>Choose an auto-refresh interval.</li>
+        </ol>
+        <p class="safety-note">This extension is local-first: your token and MR cache stay in this browser, and requests go only to the GitLab URL you configure.</p>
+        <div class="onboarding-actions">
+          <button id="skipOnboardingButton" type="button">Skip</button>
+          <button id="startOnboardingButton" type="button">Get started</button>
+        </div>
+      </section>
+
+      <section id="setupNotice" class="notice" hidden>
+        <strong>GitLab setup required</strong>
+        <span>Add your GitLab URL and access token to view merge requests.</span>
+        <button id="setupButton" type="button">Open settings</button>
+      </section>
+
+      <nav class="tabs" aria-label="Merge request type">
+        <button class="tab active" type="button" data-tab="created">
+          Created by me <span id="createdCount" class="count">0</span>
+        </button>
+        <button class="tab" type="button" data-tab="review">
+          Waiting for review <span id="reviewCount" class="count">0</span>
+        </button>
+      </nav>
+
+      <section class="toolbar" aria-label="List actions">
+        <button id="copyButton" class="toolbar-button" type="button">Copy current list</button>
+      </section>
+
+      <section id="status" class="status" role="status"></section>
+      <section id="content" class="content"></section>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

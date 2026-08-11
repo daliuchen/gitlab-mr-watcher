@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GitLab Me MR Settings</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body class="options-body">
+    <main class="options-shell">
+      <header>
+        <h1>GitLab Me MR Settings</h1>
+        <p class="muted">For the simplest setup, create a GitLab access token with all scopes selected. This extension is local-first: your token and MR cache stay in this browser, and requests go only to the GitLab URL you configure.</p>
+      </header>
+
+      <form id="settingsForm" class="form">
+        <label>
+          <span>GitLab URL</span>
+          <input id="gitlabBaseUrl" type="url" placeholder="https://gitlab.com or https://gitlab.company.com" autocomplete="off" required>
+        </label>
+
+        <label>
+          <span>Access Token</span>
+          <input id="accessToken" type="password" placeholder="glpat-..." autocomplete="off" required>
+        </label>
+
+        <label>
+          <span>Maximum items per list</span>
+          <select id="maxPages">
+            <option value="1">100 items</option>
+            <option value="2">200 items</option>
+            <option value="3">300 items</option>
+            <option value="5">500 items</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Auto refresh</span>
+          <select id="refreshIntervalMinutes">
+            <option value="0">Off</option>
+            <option value="1">Every 1 minute</option>
+            <option value="5">Every 5 minutes</option>
+            <option value="10">Every 10 minutes</option>
+            <option value="15">Every 15 minutes</option>
+            <option value="30">Every 30 minutes</option>
+          </select>
+        </label>
+
+        <div class="form-actions">
+          <button id="testButton" type="button">Test connection</button>
+          <button type="submit">Save</button>
+        </div>
+      </form>
+
+      <section id="status" class="status" role="status"></section>
+    </main>
+
+    <script src="options.js"></script>
+  </body>
+</html>

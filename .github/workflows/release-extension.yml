@@ -1,0 +1,84 @@
+name: Build Extension Package
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-extension:
+    name: Build browser extension packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Build Chrome package
+        run: npm run build:chrome
+
+      - name: Build Firefox package
+        run: npm run build:firefox
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Upload Chrome package
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitlab-me-mr-chrome
+          path: dist/gitlab-me-mr-chrome.zip
+          if-no-files-found: error
+
+      - name: Upload Firefox package
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitlab-me-mr-firefox
+          path: dist/gitlab-me-mr-firefox.zip
+          if-no-files-found: error
+
+      - name: Upload package to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/gitlab-me-mr-chrome.zip
+            dist/gitlab-me-mr-firefox.zip
+          generate_release_notes: true
+
+      - name: Upload package to latest GitHub Release
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest extension build
+          body: |
+            Automated extension package from `${{ github.sha }}`.
+
+            Use version tags like `v0.5.0` for stable releases.
+          files: |
+            dist/gitlab-me-mr-chrome.zip
+            dist/gitlab-me-mr-firefox.zip
+          prerelease: true
+          make_latest: false
