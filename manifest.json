@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "GitLab Me MR",
+  "name": "GitLab MR Watcher",
   "description": "View GitLab merge requests created by you and waiting for your review, grouped by project.",
   "version": "0.5.0",
   "icons": {
@@ -10,7 +10,7 @@
     "128": "icons/icon-128.png"
   },
   "action": {
-    "default_title": "GitLab Me MR",
+    "default_title": "GitLab MR Watcher",
     "default_popup": "src/popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",

@@ -9,11 +9,11 @@ const manifestPath = join(firefoxBuildDir, "manifest.json");
 const manifest = await readJson(manifestPath);
 manifest.browser_specific_settings = {
   gecko: {
-    id: "gitlab-me-mr@daliuchen.github.io",
+    id: "gitlab-mr-watcher@daliuchen.github.io",
     strict_min_version: "109.0"
   }
 };
 
 await writeJson(manifestPath, manifest);
-await zipDirectory(firefoxBuildDir, join(paths.dist, "gitlab-me-mr-firefox.zip"));
-console.log("Created dist/gitlab-me-mr-firefox.zip");
+await zipDirectory(firefoxBuildDir, join(paths.dist, "gitlab-mr-watcher-firefox.zip"));
+console.log("Created dist/gitlab-mr-watcher-firefox.zip");

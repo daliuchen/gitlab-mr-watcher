@@ -47,15 +47,15 @@ jobs:
       - name: Upload Chrome package
         uses: actions/upload-artifact@v4
         with:
-          name: gitlab-me-mr-chrome
-          path: dist/gitlab-me-mr-chrome.zip
+          name: gitlab-mr-watcher-chrome
+          path: dist/gitlab-mr-watcher-chrome.zip
           if-no-files-found: error
 
       - name: Upload Firefox package
         uses: actions/upload-artifact@v4
         with:
-          name: gitlab-me-mr-firefox
-          path: dist/gitlab-me-mr-firefox.zip
+          name: gitlab-mr-watcher-firefox
+          path: dist/gitlab-mr-watcher-firefox.zip
           if-no-files-found: error
 
       - name: Upload package to GitHub Release
@@ -63,8 +63,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/gitlab-me-mr-chrome.zip
-            dist/gitlab-me-mr-firefox.zip
+            dist/gitlab-mr-watcher-chrome.zip
+            dist/gitlab-mr-watcher-firefox.zip
           generate_release_notes: true
 
       - name: Upload package to latest GitHub Release
@@ -78,7 +78,7 @@ jobs:
 
             Use version tags like `v0.5.0` for stable releases.
           files: |
-            dist/gitlab-me-mr-chrome.zip
-            dist/gitlab-me-mr-firefox.zip
+            dist/gitlab-mr-watcher-chrome.zip
+            dist/gitlab-mr-watcher-firefox.zip
           prerelease: true
           make_latest: false

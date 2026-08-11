@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="icons/icon-128.png" alt="GitLab Me MR icon" width="96" height="96" />
+  <img src="icons/icon-128.png" alt="GitLab MR Watcher icon" width="96" height="96" />
 </p>
 
-# GitLab Me MR
+# GitLab MR Watcher
 
 A local Chrome / Edge extension for viewing open GitLab merge requests related to you:
 
@@ -22,7 +22,7 @@ A local Chrome / Edge extension for viewing open GitLab merge requests related t
 1. Open `chrome://extensions/` or `edge://extensions/`.
 2. Enable Developer mode.
 3. Click "Load unpacked".
-4. Select this directory: `/Users/cliu/WebstormProjects/gitlab-me-mr`.
+4. Select this directory: `/Users/cliu/WebstormProjects/gitlab-mr-watcher`.
 
 ## Build Packages
 

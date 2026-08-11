@@ -1,5 +1,5 @@
 {
-  "name": "gitlab-me-mr",
+  "name": "gitlab-mr-watcher",
   "version": "0.5.0",
   "private": true,
   "type": "module",
