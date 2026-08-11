@@ -46,6 +46,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === "closeMergeRequests") {
+    closeMergeRequests(message.mergeRequests)
+      .then((cache) => sendResponse({ ok: true, cache }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
   if (message?.type === "ignoreMergeRequest") {
     ignoreMergeRequest(message.mergeRequest)
       .then((cache) => sendResponse({ ok: true, cache }))
@@ -85,8 +92,12 @@ async function refreshMergeRequests() {
   ]);
   const enriched = await markMergeRequestActivity([...created, ...review]);
   const enrichedByKey = new Map(enriched.map((mr) => [mergeRequestKey(mr), mr]));
-  const visibleCreated = created.map((mr) => enrichedByKey.get(mergeRequestKey(mr)) || mr);
-  const visibleReview = review.map((mr) => enrichedByKey.get(mergeRequestKey(mr)) || mr);
+  const visibleCreated = created
+    .map((mr) => enrichedByKey.get(mergeRequestKey(mr)))
+    .filter(Boolean);
+  const visibleReview = review
+    .map((mr) => enrichedByKey.get(mergeRequestKey(mr)))
+    .filter(Boolean);
   const projects = await fetchProjects(settings, [...visibleCreated, ...visibleReview]);
   const cache = {
     user,
@@ -98,7 +109,7 @@ async function refreshMergeRequests() {
 
   await chrome.storage.local.set({ [CACHE_KEY]: cache });
   await chrome.action.setBadgeBackgroundColor({ color: "#1a73e8" });
-  await chrome.action.setBadgeText({ text: review.length ? String(review.length) : "" });
+  await chrome.action.setBadgeText({ text: visibleReview.length ? String(visibleReview.length) : "" });
   return cache;
 }
 
@@ -134,6 +145,52 @@ async function closeMergeRequest(mergeRequest) {
     ...cache,
     created: (cache.created || []).filter((item) => !matchesClosed(item)),
     review: (cache.review || []).filter((item) => !matchesClosed(item)),
+    fetchedAt: new Date().toISOString()
+  };
+
+  await chrome.storage.local.set({ [CACHE_KEY]: nextCache });
+  await chrome.action.setBadgeText({
+    text: nextCache.review.length ? String(nextCache.review.length) : ""
+  });
+
+  return nextCache;
+}
+
+async function closeMergeRequests(mergeRequests) {
+  const settings = await chrome.storage.local.get(DEFAULTS);
+  if (!isConfigured(settings)) {
+    throw new Error("Configure your GitLab URL and access token first.");
+  }
+
+  if (!Array.isArray(mergeRequests) || !mergeRequests.length) {
+    throw new Error("No merge requests were selected for closing.");
+  }
+
+  for (const mergeRequest of mergeRequests) {
+    if (!mergeRequest?.project_id || !mergeRequest?.iid) {
+      throw new Error("A selected MR is missing its project ID or IID.");
+    }
+
+    const projectId = encodeURIComponent(mergeRequest.project_id);
+    const mrIid = encodeURIComponent(mergeRequest.iid);
+    await gitlabFetch(settings, `/projects/${projectId}/merge_requests/${mrIid}?state_event=close`, {
+      method: "PUT"
+    });
+  }
+
+  const current = await chrome.storage.local.get({ [CACHE_KEY]: null });
+  const cache = current[CACHE_KEY] || {
+    user: null,
+    created: [],
+    review: [],
+    projects: [],
+    fetchedAt: new Date().toISOString()
+  };
+  const closedKeys = new Set(mergeRequests.map(mergeRequestKey));
+  const nextCache = {
+    ...cache,
+    created: (cache.created || []).filter((item) => !closedKeys.has(mergeRequestKey(item))),
+    review: (cache.review || []).filter((item) => !closedKeys.has(mergeRequestKey(item))),
     fetchedAt: new Date().toISOString()
   };
 

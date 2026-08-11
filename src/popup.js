@@ -10,6 +10,7 @@ const DEFAULTS = {
 const state = {
   activeTab: "created",
   projectFilter: "",
+  ageFilterDays: "",
   settings: null,
   user: null,
   created: [],
@@ -18,6 +19,8 @@ const state = {
 };
 
 const accountLabel = document.querySelector("#accountLabel");
+const ageFilter = document.querySelector("#ageFilter");
+const bulkCloseButton = document.querySelector("#bulkCloseButton");
 const closeButton = document.querySelector("#closeButton");
 const copyButton = document.querySelector("#copyButton");
 const onboardingPanel = document.querySelector("#onboardingPanel");
@@ -42,7 +45,12 @@ document.querySelectorAll(".tab").forEach((button) => {
 });
 
 closeButton.addEventListener("click", () => window.close());
+bulkCloseButton.addEventListener("click", closeFilteredMergeRequests);
 copyButton.addEventListener("click", copyCurrentList);
+ageFilter.addEventListener("change", () => {
+  state.ageFilterDays = ageFilter.value;
+  render();
+});
 projectFilter.addEventListener("change", () => {
   state.projectFilter = projectFilter.value;
   render();
@@ -102,6 +110,8 @@ function render() {
   const list = currentList();
   const tabList = state[state.activeTab];
   copyButton.disabled = !list.length;
+  bulkCloseButton.disabled = !state.ageFilterDays || !list.length;
+  ageFilter.disabled = !tabList.length;
   projectFilter.disabled = !tabList.length;
 
   if (!list.length) {
@@ -136,6 +146,42 @@ async function copyCurrentList() {
     setStatus(`Copied ${list.length} MR link${list.length === 1 ? "" : "s"}.`, "success");
   } catch (error) {
     setStatus(`Copy failed: ${error.message}`, "error");
+  }
+}
+
+async function closeFilteredMergeRequests() {
+  const list = currentList();
+  if (!state.ageFilterDays || !list.length) {
+    setStatus("Choose an age filter before bulk closing.");
+    return;
+  }
+
+  const days = Number(state.ageFilterDays);
+  const confirmed = confirm(`Close ${list.length} MR${list.length === 1 ? "" : "s"} older than ${days} days?\n\nThis updates GitLab and cannot be undone here.`);
+  if (!confirmed) return;
+
+  bulkCloseButton.disabled = true;
+  setStatus(`Closing ${list.length} MR${list.length === 1 ? "" : "s"}...`);
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: "closeMergeRequests",
+      mergeRequests: list.map((mr) => ({
+        project_id: mr.project_id,
+        iid: mr.iid
+      }))
+    });
+
+    if (!response?.ok) {
+      throw new Error(response?.error || "Bulk close failed");
+    }
+
+    applyCache(response.cache);
+    render();
+    setStatus(`Closed ${list.length} MR${list.length === 1 ? "" : "s"}.`, "success");
+  } catch (error) {
+    setStatus(error.message, "error");
+    render();
   }
 }
 
@@ -327,15 +373,24 @@ function groupByProject(mergeRequests) {
 }
 
 function currentList() {
-  const list = state[state.activeTab];
-  if (!state.projectFilter) {
-    return list;
+  let list = state[state.activeTab];
+  if (state.projectFilter) {
+    list = list.filter((mr) => String(mr.project_id) === state.projectFilter);
   }
 
-  return list.filter((mr) => String(mr.project_id) === state.projectFilter);
+  if (state.ageFilterDays) {
+    const cutoff = Date.now() - Number(state.ageFilterDays) * 24 * 60 * 60 * 1000;
+    list = list.filter((mr) => mr.updated_at && new Date(mr.updated_at).getTime() < cutoff);
+  }
+
+  return list;
 }
 
 function emptyMessage() {
+  if (state.ageFilterDays) {
+    return "No MRs match the current age filter";
+  }
+
   if (state.projectFilter) {
     return "No MRs in this project for the current view";
   }
