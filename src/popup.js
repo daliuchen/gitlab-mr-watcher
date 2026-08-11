@@ -194,9 +194,12 @@ function formatMergeRequestsForCopy(grouped) {
     }
 
     lines.push(project.name_with_namespace);
-    items.forEach((mr) => {
+    items.forEach((mr, itemIndex) => {
       lines.push(`- !${mr.iid} ${mr.title}`);
       lines.push(`  ${mr.web_url}`);
+      if (itemIndex < items.length - 1) {
+        lines.push("");
+      }
     });
   });
 
