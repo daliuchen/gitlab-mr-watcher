@@ -152,7 +152,7 @@ async function copyCurrentList() {
 async function closeFilteredMergeRequests() {
   const list = currentList();
   if (!state.ageFilterDays || !list.length) {
-    setStatus("Choose an age filter before bulk closing.");
+    setStatus("Choose a stale cleanup age before bulk closing.");
     return;
   }
 

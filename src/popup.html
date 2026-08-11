@@ -64,20 +64,26 @@
             <option value="">All projects</option>
           </select>
         </label>
-        <label class="age-filter">
-          <span>Updated</span>
-          <select id="ageFilter">
-            <option value="">Any age</option>
-            <option value="30">Older than 30 days</option>
-            <option value="60">Older than 60 days</option>
-            <option value="90">Older than 90 days</option>
-            <option value="180">Older than 180 days</option>
-            <option value="365">Older than 1 year</option>
-          </select>
-        </label>
         <button id="copyButton" class="toolbar-button" type="button">Copy current list</button>
-        <button id="bulkCloseButton" class="toolbar-button danger" type="button">Close filtered</button>
       </section>
+
+      <details class="cleanup-panel">
+        <summary>Stale cleanup</summary>
+        <div class="cleanup-controls">
+          <label class="age-filter">
+            <span>Updated</span>
+            <select id="ageFilter">
+              <option value="">Choose age</option>
+              <option value="30">Older than 30 days</option>
+              <option value="60">Older than 60 days</option>
+              <option value="90">Older than 90 days</option>
+              <option value="180">Older than 180 days</option>
+              <option value="365">Older than 1 year</option>
+            </select>
+          </label>
+          <button id="bulkCloseButton" class="toolbar-button danger" type="button">Close filtered</button>
+        </div>
+      </details>
 
       <section id="status" class="status" role="status"></section>
       <section id="content" class="content"></section>
