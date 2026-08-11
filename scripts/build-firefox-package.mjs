@@ -7,6 +7,9 @@ await copyPackageFiles(firefoxBuildDir);
 
 const manifestPath = join(firefoxBuildDir, "manifest.json");
 const manifest = await readJson(manifestPath);
+manifest.background = {
+  scripts: ["src/background.js"]
+};
 manifest.browser_specific_settings = {
   gecko: {
     id: "gitlab-mr-watcher@daliuchen.github.io",
