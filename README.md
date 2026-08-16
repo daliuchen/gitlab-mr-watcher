@@ -12,7 +12,7 @@ A local Chrome / Edge extension for viewing open GitLab merge requests related t
 - Project filtering
 - Age filtering for stale MRs
 - New and updated indicators
-- Local ignore list for MRs you want to hide
+- Local ignore list for MRs you want to hide, with a panel to review and restore ignored MRs
 - Bulk close for the currently filtered stale MRs
 - Scheduled background refresh
 - Opens MRs in a background tab so the popup stays open

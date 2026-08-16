@@ -239,6 +239,71 @@ h1 {
   padding: 0 10px 10px;
 }
 
+.ignored-list {
+  display: grid;
+  gap: 6px;
+  padding: 0 10px 10px;
+}
+
+.ignored-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ignored-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.ignored-info {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.ignored-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ignored-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ignored-meta span:not(.badge) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ignored-unignore-button {
+  min-width: 72px;
+  height: 28px;
+  padding: 0 8px;
+  color: var(--accent);
+  border-color: var(--accent);
+  background: #fff;
+}
+
+.ignored-unignore-button:not(:disabled):hover {
+  color: #fff;
+  background: var(--accent);
+}
+
 .project-filter,
 .age-filter {
   min-width: 0;

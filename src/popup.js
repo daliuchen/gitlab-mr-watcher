@@ -15,7 +15,8 @@ const state = {
   user: null,
   created: [],
   review: [],
-  projects: new Map()
+  projects: new Map(),
+  ignored: []
 };
 
 const accountLabel = document.querySelector("#accountLabel");
@@ -35,6 +36,9 @@ const statusEl = document.querySelector("#status");
 const contentEl = document.querySelector("#content");
 const createdCount = document.querySelector("#createdCount");
 const reviewCount = document.querySelector("#reviewCount");
+const ignoredPanel = document.querySelector("#ignoredPanel");
+const ignoredList = document.querySelector("#ignoredList");
+const ignoredCount = document.querySelector("#ignoredCount");
 
 document.querySelectorAll(".tab").forEach((button) => {
   button.addEventListener("click", () => {
@@ -61,6 +65,7 @@ skipOnboardingButton.addEventListener("click", dismissOnboarding);
 startOnboardingButton.addEventListener("click", startOnboarding);
 setupButton.addEventListener("click", openOptions);
 contentEl.addEventListener("click", handleContentClick);
+ignoredList.addEventListener("click", handleIgnoredClick);
 
 init();
 
@@ -95,6 +100,7 @@ async function loadData() {
     applyCache(response.cache);
     setupNotice.hidden = true;
     render();
+    loadIgnored();
   } catch (error) {
     setStatus(error.message, "error");
     if (!state.created.length && !state.review.length) {
@@ -324,7 +330,9 @@ async function ignoreMergeRequest(item, button) {
       type: "ignoreMergeRequest",
       mergeRequest: {
         project_id: mr.project_id,
-        iid: mr.iid
+        iid: mr.iid,
+        title: mr.title,
+        web_url: mr.web_url
       }
     });
 
@@ -334,7 +342,87 @@ async function ignoreMergeRequest(item, button) {
 
     applyCache(response.cache);
     render();
+    loadIgnored();
     setStatus(`Ignored !${mr.iid}`);
+  } catch (error) {
+    button.disabled = false;
+    setStatus(error.message, "error");
+  }
+}
+
+async function loadIgnored() {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "getIgnoredMergeRequests" });
+    if (!response?.ok) {
+      throw new Error(response?.error || "Failed to load ignored MRs");
+    }
+
+    state.ignored = response.ignored || [];
+    renderIgnored();
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+}
+
+function renderIgnored() {
+  ignoredCount.textContent = String(state.ignored.length);
+
+  if (!state.ignored.length) {
+    ignoredList.innerHTML = `<p class="ignored-empty">No ignored MRs.</p>`;
+    return;
+  }
+
+  ignoredList.innerHTML = state.ignored.map((mr) => {
+    const project = state.projects.get(mr.project_id);
+    const projectName = project ? project.name_with_namespace : `Project ${mr.project_id}`;
+    const title = mr.title || `!${mr.iid}`;
+
+    return `
+      <div class="ignored-item" data-project-id="${escapeHtml(mr.project_id)}" data-iid="${escapeHtml(mr.iid)}">
+        <div class="ignored-info">
+          <div class="ignored-title">${escapeHtml(title)}</div>
+          <div class="ignored-meta">
+            <span class="badge">!${escapeHtml(mr.iid)}</span>
+            <span>${escapeHtml(projectName)}</span>
+          </div>
+        </div>
+        <button class="ignored-unignore-button" type="button" title="Restore this MR">Unignore</button>
+      </div>
+    `;
+  }).join("");
+}
+
+function handleIgnoredClick(event) {
+  const button = event.target.closest(".ignored-unignore-button");
+  if (!button) return;
+
+  const item = button.closest(".ignored-item");
+  if (!item) return;
+
+  unignoreMergeRequest(Number(item.dataset.projectId), Number(item.dataset.iid), button);
+}
+
+async function unignoreMergeRequest(projectId, iid, button) {
+  button.disabled = true;
+  setStatus(`Restoring !${iid}...`);
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: "unignoreMergeRequest",
+      mergeRequest: { project_id: projectId, iid }
+    });
+
+    if (!response?.ok) {
+      throw new Error(response?.error || "Unignore failed");
+    }
+
+    state.ignored = response.ignored || [];
+    if (response.cache) {
+      applyCache(response.cache);
+      render();
+    }
+    renderIgnored();
+    setStatus(`Restored !${iid}`, "success");
   } catch (error) {
     button.disabled = false;
     setStatus(error.message, "error");

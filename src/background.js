@@ -60,6 +60,20 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === "getIgnoredMergeRequests") {
+    getIgnoredMergeRequests()
+      .then((ignored) => sendResponse({ ok: true, ignored }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "unignoreMergeRequest") {
+    unignoreMergeRequest(message.mergeRequest)
+      .then((result) => sendResponse({ ok: true, ...result }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
   return false;
 });
 
@@ -212,8 +226,14 @@ async function ignoreMergeRequest(mergeRequest) {
     [CACHE_KEY]: null,
     [IGNORED_KEY]: []
   });
-  const ignored = new Set(current[IGNORED_KEY] || []);
-  ignored.add(key);
+  const ignored = normalizeIgnored(current[IGNORED_KEY]);
+  ignored.set(key, {
+    project_id: mergeRequest.project_id,
+    iid: mergeRequest.iid,
+    title: mergeRequest.title || "",
+    web_url: mergeRequest.web_url || "",
+    ignored_at: new Date().toISOString()
+  });
 
   const cache = current[CACHE_KEY] || {
     user: null,
@@ -226,7 +246,7 @@ async function ignoreMergeRequest(mergeRequest) {
 
   await chrome.storage.local.set({
     [CACHE_KEY]: nextCache,
-    [IGNORED_KEY]: [...ignored]
+    [IGNORED_KEY]: [...ignored.values()]
   });
   await chrome.action.setBadgeText({
     text: nextCache.review.length ? String(nextCache.review.length) : ""
@@ -235,12 +255,38 @@ async function ignoreMergeRequest(mergeRequest) {
   return nextCache;
 }
 
+async function getIgnoredMergeRequests() {
+  const current = await chrome.storage.local.get({ [IGNORED_KEY]: [] });
+  return [...normalizeIgnored(current[IGNORED_KEY]).values()];
+}
+
+async function unignoreMergeRequest(mergeRequest) {
+  if (!mergeRequest?.project_id || !mergeRequest?.iid) {
+    throw new Error("Missing MR project ID or IID, so it cannot be unignored.");
+  }
+
+  const key = mergeRequestKey(mergeRequest);
+  const current = await chrome.storage.local.get({ [IGNORED_KEY]: [] });
+  const ignored = normalizeIgnored(current[IGNORED_KEY]);
+  ignored.delete(key);
+  await chrome.storage.local.set({ [IGNORED_KEY]: [...ignored.values()] });
+
+  let cache = null;
+  try {
+    cache = await refreshMergeRequests();
+  } catch {
+    cache = null;
+  }
+
+  return { ignored: [...ignored.values()], cache };
+}
+
 async function markMergeRequestActivity(mergeRequests) {
   const current = await chrome.storage.local.get({
     [SEEN_KEY]: {},
     [IGNORED_KEY]: []
   });
-  const ignored = new Set(current[IGNORED_KEY] || []);
+  const ignored = new Set(normalizeIgnored(current[IGNORED_KEY]).keys());
   const previous = current[SEEN_KEY] || {};
   const next = {};
 
@@ -353,4 +399,35 @@ function removeMergeRequestFromCache(cache, mergeRequest) {
 
 function mergeRequestKey(mergeRequest) {
   return `${mergeRequest.project_id}:${mergeRequest.iid}`;
+}
+
+function normalizeIgnored(rawList) {
+  const list = Array.isArray(rawList) ? rawList : [];
+  const byKey = new Map();
+
+  list.forEach((entry) => {
+    if (typeof entry === "string") {
+      const [projectId, iid] = entry.split(":");
+      byKey.set(entry, {
+        project_id: Number(projectId),
+        iid: Number(iid),
+        title: "",
+        web_url: "",
+        ignored_at: null
+      });
+      return;
+    }
+
+    if (entry && entry.project_id != null && entry.iid != null) {
+      byKey.set(mergeRequestKey(entry), {
+        project_id: entry.project_id,
+        iid: entry.iid,
+        title: entry.title || "",
+        web_url: entry.web_url || "",
+        ignored_at: entry.ignored_at || null
+      });
+    }
+  });
+
+  return byKey;
 }
