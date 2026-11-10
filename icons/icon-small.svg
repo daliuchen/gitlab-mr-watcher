@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="GitLab MR Watcher icon, simplified for 16px">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2B2D5C"/>
+      <stop offset="1" stop-color="#16172E"/>
+    </linearGradient>
+    <linearGradient id="or" x1="20" y1="30" x2="108" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFA24A"/>
+      <stop offset="1" stop-color="#F0502A"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <path d="M4 64C22 30 44 20 64 20s42 10 60 44C106 98 84 108 64 108S22 98 4 64z" fill="url(#or)"/>
+  <circle cx="64" cy="64" r="34" fill="#fff"/>
+  <circle cx="64" cy="64" r="18" fill="#1E1F3F"/>
+</svg>

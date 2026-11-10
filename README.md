@@ -27,7 +27,7 @@ A local Chrome / Edge extension for viewing open GitLab merge requests related t
 1. Open `chrome://extensions/` or `edge://extensions/`.
 2. Enable Developer mode.
 3. Click "Load unpacked".
-4. Select this directory: `/Users/cliu/WebstormProjects/gitlab-mr-watcher`.
+4. Select the root directory of this repository (or unzip `gitlab-mr-watcher-chrome.zip` from the [latest release](https://github.com/daliuchen/gitlab-mr-watcher/releases/latest) and select that folder).
 
 ## Build Packages
 
@@ -65,3 +65,12 @@ The extension only requests the GitLab URL you configure:
 This extension is local-first. The access token and MR cache are stored only in local browser extension storage, requests go only to the GitLab URL you configure, and nothing is sent to any third-party service. The Firefox package declares `data_collection_permissions.required: ["none"]`.
 
 Auto refresh uses `chrome.alarms`. While the browser is running, the extension refreshes on the configured interval and shows the number of MRs waiting for your review in the extension badge.
+
+## Icon
+
+`icons/icon.svg` is the source for the 32/48/128 px icons; `icons/icon-small.svg` is a simplified version used for 16 px. Regenerate the PNGs with:
+
+```sh
+rsvg-convert -w 16 -h 16 icons/icon-small.svg -o icons/icon-16.png
+for s in 32 48 128; do rsvg-convert -w $s -h $s icons/icon.svg -o icons/icon-$s.png; done
+```
